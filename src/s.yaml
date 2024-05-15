@@ -1,0 +1,66 @@
+# ------------------------------------
+#   官方手册: https://docs.serverless-devs.com/user-guide/aliyun/#fc3
+#   常见小贴士: https://manual.serverless-devs.com/user-guide/tips/
+#   有问题快来钉钉群问一下吧：33947367
+# ------------------------------------
+edition: 3.0.0
+name: hello-world-app
+access: "{{ access}}"
+
+vars: 
+  region: "{{ region}}"
+  vpcConfig:
+    vpcId: "{{ vpcId }}"
+    vSwitchIds:
+      - "{{ vSwitchId }}"
+    securityGroupId: "{{ securityGroupId }}"
+
+resources:
+  fast_gpt:
+    component: fc3
+    actions:
+      complete-deploy:
+        - component: fc3 invoke -e "{}" --silent
+    props: #  组件的属性值
+      region: ${vars.region} 
+      functionName: "{{ functionName }}"
+      description: "fastgpt by serverless devs"
+      runtime: "custom-container"
+      customContainerConfig:
+        image: registry.${vars.region}.aliyuncs.com/serverless-demo/fastgpt:v1
+        port: 3000
+      instanceConcurrency: 100
+      cpu: 2
+      memorySize: 4096
+      diskSize: 512
+      timeout: 600
+      vpcConfig: ${vars.vpcConfig}
+      environmentVariables:
+        DEFAULT_ROOT_PSW: "{{ DEFAULT_ROOT_PSW }}"
+        OPENAI_BASE_URL: "{{ OPENAI_BASE_URL }}"
+        CHAT_API_KEY: "{{ CHAT_API_KEY }}"
+        MONGODB_URI: "{{ MONGODB_URI }}"
+        PG_URL: "{{ PG_URL }}"
+        TOKEN_KEY: any
+        ROOT_KEY: root_key
+        FILE_TOKEN_KEY: filetoken
+        DB_MAX_LINK: "5"
+
+  test-fc-domain:
+    component: fc3-domain
+    props: #  组件的属性值
+      region: ${vars.region} 
+      domainName: "{{ domainName }}"
+      protocol: HTTP  # HTTP | HTTPS | HTTP,HTTPS
+      routeConfig:
+        routes:
+          - functionName: ${resources.fast_gpt.props.functionName}
+            methods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - HEAD
+              - OPTIONS
+            path: /*
+            qualifier: LATEST
